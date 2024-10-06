@@ -25,13 +25,14 @@ class Ui_UpdaterDialog:
         self.gridLayout.setContentsMargins(-1, 15, -1, 15)
         self.gridLayout.setHorizontalSpacing(3)
         self.gridLayout.setObjectName("gridLayout")
-        
+
         self.showOutputCheckbox = QtWidgets.QCheckBox(UpdaterDialog)
         self.showOutputCheckbox.setObjectName("showOutputCheckbox")
         self.gridLayout.addWidget(self.showOutputCheckbox, 6, 1, 1, 1)
 
         self.outputTextBox = QtWidgets.QTextEdit(UpdaterDialog)
         self.outputTextBox.setObjectName("outputTextBox")
+        self.outputTextBox.setReadOnly(True)
         self.gridLayout.addWidget(self.outputTextBox, 5, 1, 1, 5)
         self.outputTextBox.hide()
 

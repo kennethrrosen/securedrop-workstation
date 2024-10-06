@@ -1,8 +1,11 @@
 import subprocess
 import sys
 
+import logging
+
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QDialog
+from PyQt5 import QtCore
 
 from sdw_updater import Updater, strings
 from sdw_updater.Updater import UpdateStatus, current_templates
@@ -10,7 +13,47 @@ from sdw_updater.UpdaterAppUiQt5 import Ui_UpdaterDialog
 from sdw_util import Util
 
 logger = Util.get_logger(module=__name__)
+logger.setLevel(logging.INFO)
 
+def format_log_message(record):
+    if isinstance(record, dict):
+        formatted_items = []
+        for key, value in record.items():
+            if isinstance(value, UpdateStatus):
+                formatted_items.append(f"{key}: {value.name}")
+            else:
+                formatted_items.append(f"{key}: {value}")
+        return "\n".join(formatted_items)
+    return record
+
+class TextBoxHandler(logging.Handler):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        if "Signal:" in log_entry:
+            try:
+               start = log_entry.index('{')
+               end = log_entry.rindex('}') + 1
+               dict_part = log_entry[start:end]
+               dict_items = dict_part.strip('{}').split(', ')
+               status_dict = {}
+               for item in dict_items:
+                   key, value = item.split(': ')
+                   key = key.strip('\'"')
+                   if value.startswith('<UpdatedStatus.'):
+                       value = UpdateStatus[value.split('.')[1].split(':')[0]]
+                   else:
+                       value = value.strip('\'"')
+                   status_dict[key] = value
+               formatted_message = format_log_message(status_dict)
+               log_entry = log_entry[:start] + formatted_message
+            except (ValueError, KeyError):
+              pass
+        self.text_widget.append(log_entry + "\n")
+        self.text_widget.ensureCursorVisible()
 
 def launch_securedrop_client():
     """
@@ -32,6 +75,12 @@ class UpdaterApp(QDialog, Ui_UpdaterDialog):
         self.progress = 0
         self._skip_netcheck = should_skip_netcheck
         self.setupUi(self)
+
+        text_box_handler = TextBoxHandler(self.outputTextBox)
+        text_box_handler.setLevel(logging.INFO)
+        if not any(isinstance(h, TextBoxHandler) for h in logger.handlers):
+            logger.addHandler(text_box_handler)
+        self.showOutputCheckbox.stateChanged.connect(self.toggle_output_display)
 
         # We use a single dialog with button visibility toggled at different
         # stages. In the first stage, we only show the "Start Updates" and
@@ -68,7 +117,13 @@ class UpdaterApp(QDialog, Ui_UpdaterDialog):
         This slot will receive update signals from UpgradeThread, thread which
         is used to check for TemplateVM upgrades
         """
-        logger.info(f"Signal: upgrade_status {str(result)}")
+
+        formatted_result = {
+            key: (value.name if isinstance(value, UpdateStatus) else value)
+            for key, value in result.items()
+        }
+
+        logger.info(f"Signal: upgrade_status {formatted_result}")
         self.progress = 100
         self.progressBar.setProperty("value", self.progress)
 
@@ -181,6 +236,15 @@ class UpdaterApp(QDialog, Ui_UpdaterDialog):
         """
         sys.exit()
 
+    def toggle_output_display(self, state):
+        if state == QtCore.Qt.Checked:
+            self.outputTextBox.show()
+        else:
+            self.outputTextBox.hide()
+
+    @pyqtSlot(str)
+    def display_output(self, output):
+        self.outputTextBox.append(output)
 
 def _is_netcheck_successful() -> bool:
     """
