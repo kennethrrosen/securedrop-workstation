@@ -25,6 +25,16 @@ class Ui_UpdaterDialog:
         self.gridLayout.setContentsMargins(-1, 15, -1, 15)
         self.gridLayout.setHorizontalSpacing(3)
         self.gridLayout.setObjectName("gridLayout")
+        
+        self.showOutputCheckbox = QtWidgets.QCheckBox(UpdaterDialog)
+        self.showOutputCheckbox.setObjectName("showOutputCheckbox")
+        self.gridLayout.addWidget(self.showOutputCheckbox, 6, 1, 1, 1)
+
+        self.outputTextBox = QtWidgets.QTextEdit(UpdaterDialog)
+        self.outputTextBox.setObjectName("outputTextBox")
+        self.gridLayout.addWidget(self.outputTextBox, 5, 1, 1, 5)
+        self.outputTextBox.hide()
+
         spacerItem = QtWidgets.QSpacerItem(
             20, 10, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
         )
@@ -110,3 +120,5 @@ class Ui_UpdaterDialog:
         self.applyUpdatesButton.setText(_translate("UpdaterDialog", "Start Updates"))
         self.cancelButton.setText(_translate("UpdaterDialog", "Cancel"))
         self.headline.setText(_translate("UpdaterDialog", "Headline goes here"))
+        self.showOutputCheckbox.setText(_translate("UpdaterDialog", "Show Output"))
+
